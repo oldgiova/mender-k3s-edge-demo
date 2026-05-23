@@ -1,0 +1,14 @@
+[Unit]
+Description=Install k3s on first boot
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=!/usr/local/bin/k3s
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/bash -c 'curl -sfL https://get.k3s.io | sh -'
+ExecStartPost=/bin/systemctl disable k3s-install.service
+
+[Install]
+WantedBy=multi-user.target

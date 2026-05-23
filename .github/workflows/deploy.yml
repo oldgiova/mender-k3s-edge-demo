@@ -1,0 +1,88 @@
+name: Build and deploy to edge
+
+on:
+  push:
+    branches: [main]
+
+env:
+  ARTIFACT_NAME: app-nginx-sha-${{ github.sha }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      MENDER_SERVER_URL: ${{ vars.MENDER_SERVER_URL }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install kustomize
+        run: |
+          curl -sLo kustomize.tar.gz \
+            https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.4.1/kustomize_v5.4.1_linux_amd64.tar.gz
+          tar -xzf kustomize.tar.gz && sudo mv kustomize /usr/local/bin/
+
+      - name: Install mender-artifact
+        run: |
+          . /etc/os-release
+          curl -fsSLo mender-artifact.deb \
+            "https://downloads.mender.io/repos/workstation-tools/pool/main/m/mender-artifact/mender-artifact_4.4.0-2+${ID}+${VERSION_CODENAME}_amd64.deb"
+          sudo apt-get install -y ./mender-artifact.deb
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build OCI image (arm64) and export to tarball
+        run: |
+          mkdir -p payload
+          docker buildx build \
+            --platform linux/arm64 \
+            --output "type=docker,dest=payload/image.tar" \
+            --tag nginx-edge:sha-${{ github.sha }} \
+            app/
+
+      - name: Render kustomize manifests
+        run: |
+          cd k8s/overlays/edge
+          kustomize edit set image nginx-edge=nginx-edge:sha-${{ github.sha }}
+          cd ../../..
+          kustomize build k8s/overlays/edge/ > payload/manifests.yaml
+
+      - name: Create Mender artifact
+        run: |
+          mender-artifact write module-image \
+            --type             k8s-workload \
+            --compatible-types "${{ vars.MENDER_DEVICE_TYPE }}" \
+            --artifact-name    "${{ env.ARTIFACT_NAME }}" \
+            --file             payload/image.tar \
+            --file             payload/manifests.yaml \
+            -o                 "${{ env.ARTIFACT_NAME }}.mender"
+
+      - name: Upload artifact to hosted Mender
+        run: |
+          status=$(curl -sS -X POST \
+            -H "Authorization: Bearer ${{ secrets.MENDER_TOKEN }}" \
+            -F "artifact=@${{ env.ARTIFACT_NAME }}.mender" \
+            -o response.txt -w "%{http_code}" \
+            "${{ env.MENDER_SERVER_URL }}/api/management/v1/deployments/artifacts")
+          cat response.txt
+          test "$status" -lt 300 || test "$status" -eq 409
+
+      - name: Create deployment
+        run: |
+          status=$(curl -sS -X POST \
+            -H "Authorization: Bearer ${{ secrets.MENDER_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -o response.txt -w "%{http_code}" \
+            "${{ env.MENDER_SERVER_URL }}/api/management/v1/deployments/deployments/group/${{ vars.MENDER_DEVICE_GROUP }}" \
+            -d '{
+              "name":          "${{ env.ARTIFACT_NAME }}",
+              "artifact_name": "${{ env.ARTIFACT_NAME }}"
+            }')
+          cat response.txt
+          test "$status" -lt 400

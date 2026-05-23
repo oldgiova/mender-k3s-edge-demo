@@ -1,0 +1,23 @@
+#!/bin/sh
+set -e
+
+STATE="$1"
+FILES="$2"
+
+CONTAINERD_SOCK=/run/k3s/containerd/containerd.sock
+KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+
+case "$STATE" in
+  NeedsArtifactReboot)
+    echo "No"
+    ;;
+  SupportsRollback)
+    echo "No"
+    ;;
+  ArtifactInstall)
+    if [ -f "$FILES/files/image.tar" ]; then
+      ctr --address "$CONTAINERD_SOCK" --namespace k8s.io images import "$FILES/files/image.tar"
+    fi
+    kubectl --kubeconfig "$KUBECONFIG" apply -f "$FILES/files/manifests.yaml"
+    ;;
+esac

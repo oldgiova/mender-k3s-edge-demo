@@ -1,0 +1,21 @@
+#!/bin/sh
+KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+
+kubectl --kubeconfig "$KUBECONFIG" version --client > /dev/null 2>&1 || exit 0
+
+image=$(kubectl --kubeconfig "$KUBECONFIG" get deployment nginx-edge \
+    -n edge-app -o jsonpath='{.spec.template.spec.containers[0].image}' 2>/dev/null)
+
+ready=$(kubectl --kubeconfig "$KUBECONFIG" get deployment nginx-edge \
+    -n edge-app -o jsonpath='{.status.readyReplicas}' 2>/dev/null)
+
+desired=$(kubectl --kubeconfig "$KUBECONFIG" get deployment nginx-edge \
+    -n edge-app -o jsonpath='{.spec.replicas}' 2>/dev/null)
+
+phase=$(kubectl --kubeconfig "$KUBECONFIG" get pods \
+    -n edge-app -l app=nginx-edge \
+    -o jsonpath='{.items[0].status.phase}' 2>/dev/null)
+
+echo "k8s_app_image=${image:-unknown}"
+echo "k8s_app_replicas=${ready:-0}/${desired:-0}"
+echo "k8s_app_pod_status=${phase:-unknown}"
