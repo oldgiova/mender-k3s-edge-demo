@@ -54,9 +54,9 @@ git push main
 ## Prerequisites
 
 - A [hosted Mender](https://hosted.mender.io) account (free tier works)
-- A Raspberry Pi 4
-- A GitHub account, and a **fork of this repository** — the app deployment pipeline runs as a GitHub Actions workflow in your own fork, and the per-repository secrets and variables it needs live there (see [Step 2](#step-2--configure-github-actions-once-per-repository))
+- A Raspberry Pi 4 with **at least 4 GB of RAM (8 GB recommended)** — running a k3s node plus your workloads on less is likely to hit memory pressure
 - A microSD card of **at least 16 GB** (holds two A/B OS copies plus the k3s data partition and its container images)
+- A GitHub account, and a **fork of this repository** — the app deployment pipeline runs as a GitHub Actions workflow in your own fork, and the per-repository secrets and variables it needs live there (see [Step 2](#step-2--configure-github-actions-once-per-repository))
 - `mender-artifact` on your build machine (only for `make snapshot-image` — see [downloads](https://docs.mender.io/downloads))
 
 ## Frequency guide
