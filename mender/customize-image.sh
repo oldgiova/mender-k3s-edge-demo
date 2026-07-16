@@ -195,3 +195,6 @@ echo "Default password for '${USERNAME}': raspberry — change on first login"
 [[ -n "$MENDER_SERVER_URL" ]] && echo "Mender server: $MENDER_SERVER_URL (baked into mender.conf)"
 [[ -n "$K3S_VERSION" ]]       && echo "k3s ${K3S_VERSION} — installs on first boot via firstrun.sh"
 [[ "$DEMO" == "true" ]]       && echo "Demo polling enabled — update/inventory 5s, retry 30s"
+
+# Trailing conditional echoes above must not set a non-zero exit status
+exit 0
