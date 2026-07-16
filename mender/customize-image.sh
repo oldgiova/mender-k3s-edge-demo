@@ -80,7 +80,10 @@ curl -fsSL https://downloads.mender.io/repos/debian/gpg \
 echo "deb [arch=arm64] https://downloads.mender.io/repos/device-components debian/trixie/stable main" \
     > /etc/apt/sources.list.d/mender.list
 DEBIAN_FRONTEND=noninteractive apt-get update -qq
-DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends mender-connect
+# --force-conf{def,old} keeps the mender-connect.conf we pre-seed on the rootfs
+DEBIAN_FRONTEND=noninteractive apt-get install -y \
+    -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold \
+    --no-install-recommends mender-connect
 
 HEADER
 
@@ -160,6 +163,18 @@ if [[ ( -n "$MENDER_SERVER_URL" && -n "$MENDER_TENANT_TOKEN" ) || "$DEMO" == "tr
     sudo chown root:root "$CONF"
 fi
 
+# mender-connect — run the Device Connect remote terminal as the device login user
+# (pre-seeded here; firstrun's apt install keeps it via --force-confold)
+sudo mkdir -p "$ROOTFS_MNT/etc/mender"
+sudo tee "$ROOTFS_MNT/etc/mender/mender-connect.conf" > /dev/null <<CONNECT
+{
+    "ShellCommand": "/bin/bash",
+    "User": "${USERNAME}"
+}
+CONNECT
+sudo chmod 600 "$ROOTFS_MNT/etc/mender/mender-connect.conf"
+sudo chown root:root "$ROOTFS_MNT/etc/mender/mender-connect.conf"
+
 
 sudo tee "$ROOTFS_MNT/etc/systemd/system/firstrun.service" > /dev/null <<'EOF'
 [Unit]
@@ -195,6 +210,7 @@ echo "Default password for '${USERNAME}': raspberry — change on first login"
 [[ -n "$MENDER_SERVER_URL" ]] && echo "Mender server: $MENDER_SERVER_URL (baked into mender.conf)"
 [[ -n "$K3S_VERSION" ]]       && echo "k3s ${K3S_VERSION} — installs on first boot via firstrun.sh"
 [[ "$DEMO" == "true" ]]       && echo "Demo polling enabled — update/inventory 5s, retry 30s"
+echo "Device Connect terminal will run as '${USERNAME}' (mender-connect.conf)"
 
 # Trailing conditional echoes above must not set a non-zero exit status
 exit 0
