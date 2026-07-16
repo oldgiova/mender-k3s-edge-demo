@@ -56,6 +56,7 @@ git push main
 - A [hosted Mender](https://hosted.mender.io) account (free tier works)
 - A Raspberry Pi 4
 - A GitHub account, and a **fork of this repository** — the app deployment pipeline runs as a GitHub Actions workflow in your own fork, and the per-repository secrets and variables it needs live there (see [Step 2](#step-2--configure-github-actions-once-per-repository))
+- A microSD card of **at least 16 GB** (holds two A/B OS copies plus the k3s data partition and its container images)
 - `mender-artifact` on your build machine (only for `make snapshot-image` — see [downloads](https://docs.mender.io/downloads))
 
 ## Frequency guide
@@ -102,7 +103,7 @@ What the script does to the image:
 
 > **Default password** is `raspberry` — change it on first login. `DEVICE_USER` defaults to `pi`, `SSH_KEY` to `~/.ssh/id_ed25519.pub`. `K3S_VERSION` and Mender credentials are optional — omit them to skip those steps. Add `DEMO=true` to bake in mender-convert's demo polling intervals (update/inventory 5 s, retry 30 s) for a fast test loop instead of the slow production defaults.
 
-> **Storage** — the data partition (`/data`, where k3s keeps its state under `data-dir: /data/k3s`) automatically expands to fill the whole SD card on first boot, whatever card size you flash. mender-convert enables this by default (`MENDER_DATA_PART_GROWFS=y`): a one-shot `mender-grow-data.service` grows the partition, then `x-systemd.growfs` grows the filesystem — no manual `resize2fs`/`raspi-config` step needed.
+> **Storage** — use a microSD card of **at least 16 GB**. The data partition (`/data`, where k3s keeps its state under `data-dir: /data/k3s`) automatically expands to fill the whole SD card on first boot, whatever card size you flash. mender-convert enables this by default (`MENDER_DATA_PART_GROWFS=y`): a one-shot `mender-grow-data.service` grows the partition, then `x-systemd.growfs` grows the filesystem — no manual `resize2fs`/`raspi-config` step needed.
 
 Your tenant token is in hosted Mender under **Settings → My organization**.
 
