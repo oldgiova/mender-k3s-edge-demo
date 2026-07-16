@@ -98,7 +98,7 @@ What the script does to the image:
 | FAT32 boot (p1) | `userconf.txt` (creates user on first boot), `ssh` (enables sshd — only when `ENABLE_SSH_ACCESS=true`), `cmdline.txt` patched with `cgroup_memory=1 cgroup_enable=memory` |
 | rootfs-A (p2) | `~/.ssh/authorized_keys`, passwordless-sudo entry, `/etc/mender/mender.conf` with `ServerURL` + `TenantToken`, k3s binary + service + `data-dir: /data/k3s` config, Mender APT repo + one-shot service that installs `mender-connect` on first boot |
 
-> **Default password** is `raspberry` — change it on first login. `DEVICE_USER` defaults to `pi`, `SSH_KEY` to `~/.ssh/id_ed25519.pub`. `K3S_VERSION` and Mender credentials are optional — omit them to skip those steps.
+> **Default password** is `raspberry` — change it on first login. `DEVICE_USER` defaults to `pi`, `SSH_KEY` to `~/.ssh/id_ed25519.pub`. `K3S_VERSION` and Mender credentials are optional — omit them to skip those steps. Add `DEMO=true` to bake in mender-convert's demo polling intervals (update/inventory 5 s, retry 30 s) for a fast test loop instead of the slow production defaults.
 
 Your tenant token is in hosted Mender under **Settings → My organization**.
 

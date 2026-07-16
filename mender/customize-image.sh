@@ -18,6 +18,9 @@ MENDER_TENANT_TOKEN="${MENDER_TENANT_TOKEN:-}"
 # Optional — install k3s on first boot (skipped if empty; e.g. K3S_VERSION=v1.35.0+k3s1)
 K3S_VERSION="${K3S_VERSION:-}"
 
+# Optional — bake in mender-convert's demo polling intervals for a fast test loop
+DEMO="${DEMO:-false}"
+
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 OUTPUT_DIR="$(dirname "$SCRIPT_DIR")/output"
 sudo mkdir -p "$OUTPUT_DIR"
@@ -130,16 +133,29 @@ sudo install -d -m 755 "$ROOTFS_MNT/usr/share/mender/inventory"
 sudo install -m 755 "$SCRIPT_DIR/convert-overlay/rootfs_overlay/usr/share/mender/inventory/mender-inventory-k8s-app" \
     "$ROOTFS_MNT/usr/share/mender/inventory/mender-inventory-k8s-app"
 
-# Mender server credentials — merge into existing mender.conf to preserve RootfsPartA/B etc.
-if [[ -n "$MENDER_SERVER_URL" && -n "$MENDER_TENANT_TOKEN" ]]; then
+# Mender client config — merge into existing mender.conf to preserve RootfsPartA/B etc.
+if [[ ( -n "$MENDER_SERVER_URL" && -n "$MENDER_TENANT_TOKEN" ) || "$DEMO" == "true" ]]; then
     sudo mkdir -p "$ROOTFS_MNT/etc/mender"
     CONF="$ROOTFS_MNT/etc/mender/mender.conf"
     EXISTING="{}"
     [[ -f "$CONF" ]] && EXISTING="$(sudo cat "$CONF")"
-    printf '%s' "$EXISTING" \
-        | jq --arg url "$MENDER_SERVER_URL" --arg tok "$MENDER_TENANT_TOKEN" \
-             '. + {ServerURL: $url, TenantToken: $tok, Servers: [{ServerURL: $url}]}' \
-        | sudo tee "$CONF" > /dev/null
+    CONF_JSON="$EXISTING"
+
+    if [[ -n "$MENDER_SERVER_URL" && -n "$MENDER_TENANT_TOKEN" ]]; then
+        CONF_JSON="$(printf '%s' "$CONF_JSON" \
+            | jq --arg url "$MENDER_SERVER_URL" --arg tok "$MENDER_TENANT_TOKEN" \
+                 '. + {ServerURL: $url, TenantToken: $tok, Servers: [{ServerURL: $url}]}')"
+    fi
+
+    # Demo polling intervals — mirrors mender-convert's demo config (update/inventory 5s, retry 30s)
+    if [[ "$DEMO" == "true" ]]; then
+        CONF_JSON="$(printf '%s' "$CONF_JSON" \
+            | jq '.UpdatePollIntervalSeconds=5
+                  | .InventoryPollIntervalSeconds=5
+                  | .RetryPollIntervalSeconds=30')"
+    fi
+
+    printf '%s' "$CONF_JSON" | sudo tee "$CONF" > /dev/null
     sudo chmod 600 "$CONF"
     sudo chown root:root "$CONF"
 fi
@@ -178,3 +194,4 @@ echo "Done: $OUTPUT_IMAGE"
 echo "Default password for '${USERNAME}': raspberry — change on first login"
 [[ -n "$MENDER_SERVER_URL" ]] && echo "Mender server: $MENDER_SERVER_URL (baked into mender.conf)"
 [[ -n "$K3S_VERSION" ]]       && echo "k3s ${K3S_VERSION} — installs on first boot via firstrun.sh"
+[[ "$DEMO" == "true" ]]       && echo "Demo polling enabled — update/inventory 5s, retry 30s"
