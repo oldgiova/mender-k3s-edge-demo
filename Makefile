@@ -12,6 +12,7 @@ MENDER_TENANT_TOKEN ?=
 K3S_VERSION         ?=
 ENABLE_SSH_ACCESS   ?= false
 DEVICE_HOSTNAME     ?=
+DEMO                ?= false
 
 SHELL_SCRIPTS := \
 	mender/k8s-update-module \
@@ -37,7 +38,7 @@ build-image: ## Build the Mender device image  (INPUT=... MENDER_TENANT_TOKEN=..
 setup-device: ## Install update module and inventory script on this device (run on the Pi)
 	bash mender/setup-device.sh
 
-customize-image: ## Patch a Mender image: user, SSH key, mender.conf, k3s (INPUT=... SSH_KEY=... MENDER_SERVER_URL=... MENDER_TENANT_TOKEN=... K3S_VERSION=...)
+customize-image: ## Patch a Mender image: user, SSH key, mender.conf, k3s (INPUT=... SSH_KEY=... MENDER_SERVER_URL=... MENDER_TENANT_TOKEN=... K3S_VERSION=... DEMO=true)
 	@test -n "$(INPUT)" || { \
 	  echo "error: INPUT is required"; \
 	  echo "usage: make customize-image INPUT=/path/to/mender-image.img.xz"; \
@@ -47,6 +48,7 @@ customize-image: ## Patch a Mender image: user, SSH key, mender.conf, k3s (INPUT
 	K3S_VERSION="$(K3S_VERSION)" \
 	ENABLE_SSH_ACCESS="$(ENABLE_SSH_ACCESS)" \
 	DEVICE_HOSTNAME="$(DEVICE_HOSTNAME)" \
+	DEMO="$(DEMO)" \
 	bash mender/customize-image.sh "$(INPUT)" "$(DEVICE_USER)" "$(SSH_KEY)"
 
 snapshot-image: ## Create golden rootfs artifact from a running device (DEVICE_IP=...)
