@@ -1,4 +1,4 @@
-# mender-k8s-edge
+# mender-k3s-edge-demo
 
 Kubernetes workload updates at the edge, delivered over-the-air by [Mender](https://mender.io).
 
@@ -55,12 +55,14 @@ git push main
 
 - A [hosted Mender](https://hosted.mender.io) account (free tier works)
 - A Raspberry Pi 4
+- A GitHub account, and a **fork of this repository** — the app deployment pipeline runs as a GitHub Actions workflow in your own fork, and the per-repository secrets and variables it needs live there (see [Step 2](#step-2--configure-github-actions-once-per-repository))
 - `mender-artifact` on your build machine (only for `make snapshot-image` — see [downloads](https://docs.mender.io/downloads))
 
 ## Frequency guide
 
 | Step | When |
 |------|------|
+| Fork this repository | **Once** |
 | Build & flash the device image | **Once** per device type |
 | Configure GitHub Actions secrets | **Once** per repository |
 | Accept the device in hosted Mender | **Once** per device |
@@ -116,8 +118,8 @@ Alternatively, use [Raspberry Pi Imager](https://www.raspberrypi.com/software/) 
 After flashing and booting, SSH in and install the `k8s-workload` update module and inventory script:
 
 ```bash
-git clone https://github.com/<your-org>/mender-k8s-edge.git
-cd mender-k8s-edge
+git clone https://github.com/<your-org>/mender-k3s-edge-demo.git
+cd mender-k3s-edge-demo
 make setup-device
 ```
 
@@ -129,7 +131,9 @@ For every additional device, repeat steps 1a–1b. No master device, no snapshot
 
 ## Step 2 — Configure GitHub Actions *(once per repository)*
 
-In your repository **Settings → Secrets and variables → Actions**, add:
+The app deployment pipeline runs as a GitHub Actions workflow, so it has to live in a repository you control. If you haven't already, **fork this repository** to your own GitHub account (click **Fork** at the top-right of the repository page). Every `git push` to `main` on your fork then triggers the workflow, and the secret and variables below are read from your fork.
+
+In your fork's **Settings → Secrets and variables → Actions**, add:
 
 | Type | Name | Value |
 |------|------|-------|
