@@ -54,7 +54,8 @@ git push main
 ## Prerequisites
 
 - A [hosted Mender](https://hosted.mender.io) account (free tier works)
-- A Raspberry Pi 4
+- A Raspberry Pi 4 with **at least 4 GB of RAM (8 GB recommended)** — running a k3s node plus your workloads on less is likely to hit memory pressure
+- A microSD card of **at least 16 GB** (holds two A/B OS copies plus the k3s data partition and its container images)
 - A GitHub account, and a **fork of this repository** — the app deployment pipeline runs as a GitHub Actions workflow in your own fork, and the per-repository secrets and variables it needs live there (see [Step 2](#step-2--configure-github-actions-once-per-repository))
 - `mender-artifact` on your build machine (only for `make snapshot-image` — see [downloads](https://docs.mender.io/downloads))
 
@@ -101,6 +102,8 @@ What the script does to the image:
 | rootfs-A (p2) | `~/.ssh/authorized_keys`, passwordless-sudo entry, `/etc/mender/mender.conf` with `ServerURL` + `TenantToken`, `/etc/mender/mender-connect.conf` with `User` set to the device login user (so the Device Connect terminal runs as `DEVICE_USER`), k3s binary + service + `data-dir: /data/k3s` config, Mender APT repo + one-shot service that installs `mender-connect` on first boot |
 
 > **Default password** is `raspberry` — change it on first login. `DEVICE_USER` defaults to `pi`, `SSH_KEY` to `~/.ssh/id_ed25519.pub`. `K3S_VERSION` and Mender credentials are optional — omit them to skip those steps. Add `DEMO=true` to bake in mender-convert's demo polling intervals (update/inventory 5 s, retry 30 s) for a fast test loop instead of the slow production defaults.
+
+> **Storage** — use a microSD card of **at least 16 GB**. The data partition (`/data`, where k3s keeps its state under `data-dir: /data/k3s`) automatically expands to fill the whole SD card on first boot, whatever card size you flash. mender-convert enables this by default (`MENDER_DATA_PART_GROWFS=y`): a one-shot `mender-grow-data.service` grows the partition, then `x-systemd.growfs` grows the filesystem — no manual `resize2fs`/`raspi-config` step needed.
 
 Your tenant token is in hosted Mender under **Settings → My organization**.
 
