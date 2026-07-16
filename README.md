@@ -1,4 +1,4 @@
-# mender-k8s-edge
+# mender-k3s-edge-demo
 
 Kubernetes workload updates at the edge, delivered over-the-air by [Mender](https://mender.io).
 
@@ -118,8 +118,8 @@ Alternatively, use [Raspberry Pi Imager](https://www.raspberrypi.com/software/) 
 After flashing and booting, SSH in and install the `k8s-workload` update module and inventory script:
 
 ```bash
-git clone https://github.com/<your-org>/mender-k8s-edge.git
-cd mender-k8s-edge
+git clone https://github.com/<your-org>/mender-k3s-edge-demo.git
+cd mender-k3s-edge-demo
 make setup-device
 ```
 
